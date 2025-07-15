@@ -1,7 +1,7 @@
 ---
 openapi: 3.0.3
 info:
-  title: Mail & Render API
+  title: ACQ Docs
   description: API para renderização de HTML em imagens e gerenciamento de emails
   version: 1.0.0
   contact:
