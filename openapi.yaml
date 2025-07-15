@@ -1,0 +1,439 @@
+---
+openapi: 3.0.3
+info:
+  title: Mail & Render API
+  description: API para renderização de HTML em imagens e gerenciamento de emails
+  version: 1.0.0
+  contact:
+    name: API Support
+servers:
+- url: https://api.acq.lat
+  description: Servidor de produção
+security:
+- bearerAuth: []
+paths:
+  "/render":
+    post:
+      summary: Renderiza HTML em imagem
+      description: Converte código HTML em uma imagem
+      tags:
+      - Render
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - html
+              properties:
+                html:
+                  type: string
+                  description: Código HTML para ser renderizado
+                  example: "<html><body><h1>Hello World</h1></body></html>"
+            examples:
+              simple_html:
+                summary: HTML simples
+                value:
+                  html: "<html><body><h1>Hello World</h1></body></html>"
+      responses:
+        '200':
+          description: Imagem gerada com sucesso
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+                description: Imagem renderizada em formato PNG
+        '401':
+          description: Token de autorização inválido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized
+        '403':
+          description: Acesso negado - requer nível premium
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Forbidden
+  "/mails":
+    get:
+      summary: Lista todos os emails do usuário
+      description: Retorna uma lista com todos os emails que o usuário possui
+      tags:
+      - Mails
+      responses:
+        '200':
+          description: Lista de emails retornada com sucesso
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  "$ref": "#/components/schemas/EmailInfo"
+              example:
+              - email: final.frame672@acq.lat
+                expiraEm: '2025-07-16T23:37:29.111Z'
+              - email: bet.seven838@acq.lat
+                expiraEm: '2025-07-18T19:05:46.086Z'
+              - email: herd.near186@acq.lat
+                expiraEm: '2025-07-18T19:08:43.717Z'
+        '401':
+          description: Token de autorização inválido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized
+  "/mail":
+    post:
+      summary: Cria um novo email
+      description: Cria um novo endereço de email para o usuário
+      tags:
+      - Mails
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                domain:
+                  type: string
+                  description: Domínio para o email (opcional)
+                  example: acq.lat
+      responses:
+        '200':
+          description: Email criado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mail:
+                    type: string
+                    format: email
+                    description: Email criado automaticamente
+              example:
+                mail: club.call433@acq.lat
+        '401':
+          description: Token de autorização inválido
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Unauthorized
+        '403':
+          description: Acesso negado - requer nível premium
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Forbidden
+    delete:
+      summary: Deleta um email do usuário
+      description: Remove um endereço de email específico do usuário
+      tags:
+      - Mails
+      parameters:
+      - name: mail
+        in: query
+        required: true
+        description: Endereço de email a ser deletado
+        schema:
+          type: string
+          format: email
+        example: user@example.com
+      responses:
+        '200':
+          description: Email deletado com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Mensagem de confirmação
+                  deleted_email:
+                    type: string
+                    format: email
+                    description: Email que foi deletado
+              example:
+                message: Email deletado com sucesso
+                deleted_email: user@example.com
+        '400':
+          description: Email não fornecido ou inválido
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: Email não encontrado
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+  "/mailbox":
+    post:
+      summary: Retorna mensagens de um email
+      description: Retorna todas as mensagens que um determinado email já recebeu
+      tags:
+      - Mailbox
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - mail
+              properties:
+                mail:
+                  type: string
+                  format: email
+                  description: Endereço de email para consultar mensagens
+                  example: user@example.com
+            examples:
+              get_messages:
+                summary: Consultar mensagens
+                value:
+                  mail: user@example.com
+      responses:
+        '200':
+          description: Mensagens retornadas com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  email:
+                    type: string
+                    format: email
+                    description: Email consultado
+                  messages:
+                    type: array
+                    items:
+                      "$ref": "#/components/schemas/EmailMessage"
+                  total:
+                    type: integer
+                    description: Número total de mensagens
+              example:
+                email: user@example.com
+                messages:
+                - id: msg_001
+                  from: sender@example.com
+                  to: user@example.com
+                  subject: Test Email
+                  body: This is a test email
+                  received_at: '2025-07-15T15:25:00Z'
+                total: 1
+        '400':
+          description: Email não fornecido ou inválido
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: Email não encontrado
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+    delete:
+      summary: Deleta todas as mensagens de um email
+      description: Remove todas as mensagens que um determinado email já recebeu
+      tags:
+      - Mailbox
+      parameters:
+      - name: mail
+        in: query
+        required: true
+        description: Endereço de email para deletar todas as mensagens
+        schema:
+          type: string
+          format: email
+        example: user@example.com
+      responses:
+        '200':
+          description: Mensagens deletadas com sucesso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    description: Mensagem de confirmação
+                  email:
+                    type: string
+                    format: email
+                    description: Email cujas mensagens foram deletadas
+                  deleted_count:
+                    type: integer
+                    description: Número de mensagens deletadas
+              example:
+                message: Todas as mensagens foram deletadas
+                email: user@example.com
+                deleted_count: 5
+        '400':
+          description: Email não fornecido ou inválido
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '401':
+          description: Não autorizado
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '404':
+          description: Email não encontrado
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Error"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT no formato - Bearer <token>
+  schemas:
+    Error:
+      type: object
+      required:
+      - error
+      - message
+      properties:
+        error:
+          type: string
+          description: Código do erro
+        message:
+          type: string
+          description: Descrição do erro
+        details:
+          type: string
+          description: Detalhes adicionais sobre o erro
+      example:
+        error: INVALID_INPUT
+        message: O campo 'html' é obrigatório
+    EmailInfo:
+      type: object
+      required:
+      - email
+      - expiraEm
+      properties:
+        email:
+          type: string
+          format: email
+          description: Endereço de email do usuário
+        expiraEm:
+          type: string
+          format: date-time
+          description: Data e hora de expiração do email
+      example:
+        email: final.frame672@acq.lat
+        expiraEm: '2025-07-16T23:37:29.111Z'
+    EmailMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Identificador único da mensagem
+        from:
+          type: string
+          format: email
+          description: Remetente da mensagem
+        to:
+          type: string
+          format: email
+          description: Destinatário da mensagem
+        subject:
+          type: string
+          description: Assunto da mensagem
+        body:
+          type: string
+          description: Corpo da mensagem
+        html_body:
+          type: string
+          description: Corpo da mensagem em HTML (opcional)
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              filename:
+                type: string
+              content_type:
+                type: string
+              size:
+                type: integer
+        received_at:
+          type: string
+          format: date-time
+          description: Data e hora de recebimento
+      example:
+        id: msg_001
+        from: sender@example.com
+        to: user@example.com
+        subject: Test Email
+        body: This is a test email
+        received_at: '2025-07-15T15:25:00Z'
+tags:
+- name: Render
+  description: Operações de renderização de HTML
+- name: Mails
+  description: Gerenciamento de emails do usuário
+- name: Mailbox
+  description: Operações com mensagens de email
